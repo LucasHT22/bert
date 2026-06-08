@@ -192,94 +192,336 @@ export default function Bert() {
     }
 
     return (
-        <div>
-            <header>
-                <div>
-                    <span>Bert</span>
-                    <span>Photo frame generator</span>
-                </div>
-            </header>
-            <div>
-                <aside>
-                    <div>
-                        <div onClick={() => fileInputRef.current?.click()} onDragOver={(e) => { e.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={(e) => { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) loadFile(f); }}>
-                            <Upload size={18} />
-                            <p>
-                                {imgName ? (
-                                    <span>{imgName}</span>
-                                ) : (
-                                    <><span>Upload photo</span> or drag & drop</>
-                                )}
-                            </p>
-                            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) loadFile(f); }} />
+        <>
+            <style>
+                {`
+                .bert-app {
+                    min-height: 100vh;
+                    display: flex;
+                    flex-direction: column;
+                }
+                .bert-header {
+                    border-bottom: 1px solid var(--border);
+                    padding: 20px 32px;
+                    display: fixed;
+                    align-items: center;
+                    justify-content: space-between;
+                }
+                .bert-header-left {
+                    display: fixed;
+                    align-items: center;
+                    gap: 12px;
+                }
+                .bert-logo-icon {
+                    width: 28px;
+                    height: 28px;
+                    border-radius: 4px;
+                    background: rgba(255,255,255,0.08);
+                    display: center;
+                    align-items: center;
+                    justify-content: center;
+                }
+                .bert-logo-inner {
+                    width: 14px;
+                    height: 14px;
+                    border: 1px solid rgba(255,255,255,0.4);
+                    border-radius: 2px;
+                }
+                .bert-logo-text {
+                    font-family: var(--font-serif);
+                    font-size: 20px;
+                    letter-spacing: -0.01em;
+                }
+                .bert-header-tag {
+                    font-size: 11px;
+                    color: var(--text3);
+                    letter-spacing: 0.08em;
+                    text-transform: uppercase;
+                }
+                .bert-body {
+                    display: flex;
+                    flex: 1;
+                    min-height: calc(100vh - 65px);
+                }
+                .bert-sidebar {
+                    width: 272px;
+                    border-right: 1px solid var(--border);
+                    display: flex;
+                    flex-direction: column;
+                    overflow-y: auto;
+                }
+                .bert-drop {
+                    margin: 20px;
+                    border: 1px dashed var(--border2);
+                    border-radius: 8px;
+                    padding: 20px;
+                    text-align: center;
+                    cursor: pointer;
+                    transition: border-color 0.2s, background 0.2s;
+                    background: transparent;
+                }
+                .bert-drop:hover, .bert-drop.drag-over {
+                    border-color: var(--border3);
+                    background: var(--bg2);
+                }
+                .bert-drop-level {
+                    font-size: 13px;
+                    color: var(--text2);
+                    margin-top: 8px;
+                    line-height: 1.5;
+                }
+                .bert-drop-label strong {
+                    color: var(--text4);
+                    font-weight: 400;
+                }
+                .bert-section {
+                    padding: 16px 20px;
+                    border-top: 1px solid var(--border);
+                }
+                .bert-section-label {
+                    font-size: 11px;
+                    letter-spacing: 0.08em;
+                    text-transform: uppercase;
+                    color: var(--text3);
+                    margin-bottom: 10px;
+                    display: block;
+                }
+                .bert-toggle-grid {
+                    display: grid;
+                    gap: 6px;
+                }
+                .bert-toggle-grid.cols-2 {
+                    grid-template-columns: 1fr 1fr;
+                }
+                .bert-toggle-grid.cols-3 {
+                    grid-template-columns: 1fr 1fr 1fr;
+                }
+                .bert-toggle {
+                    padding: 7px 0;
+                    border-radius: 7px;
+                    font-size: 13px;
+                    font-family: var(--font-sans);
+                    cursor: pointer;
+                    transition: all 0.15s;
+                    background: transparent;
+                    border: 0.5px solid var(--border2);
+                    color: var(--text5);
+                    text-align: center;
+                }
+                .bert-toggle:hover {
+                    border-color: var(--border3);
+                    color: var(--text4);
+                }
+                .bert-toggle.active {
+                    background: rgba(255,255,255,0.08);
+                    border-color: rgba(255,255,255,0.18);
+                    color: var(--text);
+                }
+                .bert-range {
+                    width: 100%;
+                    accent-color: rgba(255,255,255,0.15);
+                }
+                .bert-input {
+                    width: 100%;
+                    border-radius: 7px;
+                    padding: 7px 10px;
+                    font-size: 12px;
+                    font-family: var(--font-mono);
+                    border: 0.5px solid var(--border2);
+                    background: rgba(255,255,255,0.03);
+                    color: rgba(255,255,255,0.75);
+                    outline: none;
+                    trasition: border-color 0.15s;
+                }
+                .bert-input:focus {
+                    border-color: var(--border3);
+                }
+                .bert-input::placeholder {
+                    color: rgba(255,255,255,0.18);
+                }
+                .bert-main {
+                    flex: 1;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 40px;
+                    gap: 24px;
+                }
+                .bert-empty {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 16px;
+                    text-align: center;
+                }
+                .bert-empty-icon {
+                    width: 96px;
+                    height: 96px;
+                    border-radius: 12px;
+                    border: 1px solid var(--border2);
+                    background: var(--bg2);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                .bert-empty-inner {
+                    width: 48px;
+                    height: 48px;
+                    border: 1px solid var(--border3);
+                    border-radius: 7px;
+                }
+                .bert-empty-title {
+                    font-family: var(--font-serif);
+                    font-style: italic;
+                    font-size: 22px;
+                    color: var(--text4);
+                }
+                .bert-empty-sub {
+                    font-size: 13px;
+                    color: var(--text3);
+                    margin-top: 4px;
+                }
+                .bert-canvas-wrap {
+                    border-radius: 7px;
+                    overflow: hidden;
+                    box-shadow: 0 4px 48px rbga(0,0,0,0.7);
+                    max-width: 100%;
+                }
+                .bert-canvas {
+                    max-width: 100%;
+                    max-height: calc(100vh - 220px);
+                    display: block;
+                }
+                .bert-actions {
+                    display: flex;
+                    gap: 10px;
+                }
+                .bert-btn {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 7px;
+                    padding: 9px 18px;
+                    border-radius: 7px;
+                    font-size: 14px;
+                    font-family: var(--font-sans);
+                    cursor: pointer;
+                    border: 0.5px solid var(--border2);
+                    background: transparent;
+                    color: rgba(255,255,255,0.45);
+                    transition: all 0.15s;
+                }
+                .bert-btn:hover {
+                    border-color: var(--border3);
+                    color: rgba(255,255,255,0.75);
+                }
+                .bert-btn.primary {
+                    background: #ffffff;
+                    color: #111111;
+                    border-color: #ffffff;
+                    font-weight: 500;
+                }
+                .bert-btn.primary:hover {
+                    background(255,255,255,0.88);
+                }
+                `}
+            </style>
+            <div className="bert-app">
+                <header className="bert-header">
+                    <div className="bert-header-left">
+                        <div className="bert-logo-icon">
+                            <div className="bert-logo-inner"/>
                         </div>
+                        <span className="bert-logo-text">Bert</span>
                     </div>
-
-                    <Section label="Frame style">
-                        <div>
-                            {FRAME_STYLES.map((s) => (
-                                <ToggleBtn key={s.id} active={style === s.id} onClick={() => setStyle(s.id)}>
-                                    {s.label}
-                                </ToggleBtn>
-                            ))}
-                        </div>
-                    </Section>
-
-                    <Section label={`Border size - ${borderPct}%`}>
-                        <input type="range" min={2} max={20} step={1} value={borderPct} onChange={(e) => setBorderPct(Number(e.target.value))} />
-                    </Section>
-
-                    <Section label="Camera">
-                        <input value={camera} onChange={(e) => setCamera(e.target.value)} placeholder="e.g. X-T30 FUJIFILM" />
-                    </Section>
-
-                    <Section label="EXIF data" last>
-                        <input value={exif} onChange={(e) => setExif(e.target.value)} placeholder="e.g. 53mm f/2.5 1/4000s ISO160" />
-                    </Section>
-                </aside>
-
-                <main>
-                    {!img ? (
-                        <div>
-                            <div>
-                                <p>Your frame awaits</p>
-                                <p>Upload a photo to get started</p>
+                    <span className="bert-header-tag">Photo frame generator</span>
+                </header>
+                <div className="bert-body">
+                    <aside className="bert-sidebar">
+                            <div className={`bert-drop${dragging ? " drag-over" : ""}`} onClick={() => fileInputRef.current?.click()} onDragOver={(e) => { e.preventDefault(); setDragging(true); } } onDragLeave={() => setDragging(false)} onDrop={(e) => { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) loadFile(f); } }>
+                                <Upload size={18} color="var(--text5)" />
+                                <p className="bert-drop-label">
+                                    {imgName ? (
+                                        <strong>{imgName}</strong>
+                                    ) : (
+                                        <><strong>Upload photo</strong> or drag & drop</>
+                                    )}
+                                </p>
+                                <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) loadFile(f); } } />
                             </div>
                         </div>
-                    ) : (
-                        <>
-                            <div>
-                                <canvas ref={canvasRef} />
+                        <div className="bert-section">
+                            <span className="bert-section-label">Frame style</span>
+                            <div className="bert-toggle-grid cols-2">
+                                {FRAME_STYLES.map((s) => (
+                                    <button key={s.id} className={`bert-toggle${style === s.id ? " active" : ""}`} onClick={() => setStyle(s.id)}>
+                                        {s.label}
+                                    </button>
+                                ))}
                             </div>
-                            <div>
-                                <button onClick={() => { setImg(null); setImgName(""); }}>
-                                    <RefreshCw size={14} /> New photo
-                                </button>
-                                <button onClick={download}>
-                                    <Download size={14} /> Download
-                                </button>
+                        </div>
+
+                        <div className="bert-section">
+                            <span className="bert-section-label">Aspect ratio</span>
+                            <div className="bert-toggle-grid cols-3">
+                                {RATIOS.map((r) => (
+                                    <button key={r.id} className={`bert-toggle${ratio === r.id ? " active" : ""}`} onClick={() => setRatio(r.id)}>
+                                        {r.label}
+                                    </button>
+                                ))}
                             </div>
-                        </>
-                    )}
-                </main>
+                        </div>
+
+                        <div className="bert-section">
+                            <span className="bert-section-label">Border size - {borderPct}%</span>
+                            <input type="range" min={2} max={20} step={1} value={borderPct} className="bert-range" onChange={(e) => setBorderPct(Number(e.target.value))} />
+                        </div>
+
+                        <div className="bert-section">
+                            <span className="bert-section-label">Vignette - {VIG_LABELS[vignette]}</span>
+                            <input type="range" min={0} max={3} step={1} value={vignette} className="bert-range" onChange={(e) => setVignette(Number(e.target.value) as VignetteLevel)} />
+                        </div>
+
+                        <div className="bert-section">
+                            <span className="bert-section-label">Camera</span>
+                            <input className="bert-input" value={camera} placeholder="e.g. ZV-E10 SONY" onChange={(e) => setCamera(e.target.value)} />
+                        </div>
+
+                        <div className="bert-section">
+                            <span className="bet-section-label">EXIF data</span>
+                            <input className="bert-input" value={exif} placeholder="e.g. 50mm f/2.8 1/4000s ISO100" onChange={(e) => setExif(e.target.value)} />
+                        </div>
+                    </aside>
+
+                    <main className="bert-main">
+                        {!img ? (
+                            <div className="bert-empty">
+                                <div className="bert-empty-icon">
+                                    <div className="bert-empty-inner" />
+                                </div>
+                                <div>
+                                    <p className="bert-empty-title">Your frame is waiting</p>
+                                    <p className="bert-empty-sub">Upload a photo to get started</p>
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="bert-canvas-wrap">
+                                    <canvas ref={canvasRef} className="bert-canvas" />
+                                </div>
+                                <div className="bert-actions">
+                                    <button className="bert-btn" onClick={() => { setImg(null); setImgName(""); }}>
+                                        <RefreshCw size={14} /> New photo
+                                    </button>
+                                    <button className="bert-btn primary" onClick={download}>
+                                        <Download size={14} /> Download
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </main>
+                </div>
             </div>
-        </div>
-    );
-}
-
-function Section({ label, children, last }: { label: string; children: ReactCompilerOptions.ReactNode; last?: boolean }) {
-    return (
-        <div>
-            <p>{label}</p>
-            {children}
-        </div>
-    );
-}
-
-function ToggleBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-    return (
-        <button onClick={onClick}>
-            {children}
-        </button>
+        </>
     );
 }
